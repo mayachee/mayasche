@@ -38,3 +38,11 @@ The Infrastructure Lab is clearly marked as planned. AIRBCAR details come from
 the original portfolio; Scripts Studio uses an actual dashboard screenshot.
 Hosting identity is preserved in `.openai/hosting.json`. Deployable static files
 are in `dist/`; the existing Vercel portfolio is a separate deployment.
+
+## Germany-focused positioning
+
+The main portfolio language is German, with an entry goal in IT-Systemintegration.
+Born2beroot, Inception and NetPractice lead the project presentation, supported
+by ft_transcendence, ft_irc, Scripts Studio and AIRBCAR. Windows/AD, Microsoft 365
+and verified backup/restore exercises remain explicitly planned. The German CV is linked as supplied; its PDF was not edited.
+See [research, requirements and next evidence](docs/systemintegration-germany.md).

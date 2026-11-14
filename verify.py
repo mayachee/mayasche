@@ -23,11 +23,14 @@ def main():
             browser = p.chromium.launch(executable_path='C:/Program Files/Google/Chrome/Application/chrome.exe', headless=True,
                 args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
             page = browser.new_page(viewport={'width':1440,'height':1000}, reduced_motion='reduce')
-            page.on('pageerror', lambda e: errors.append(str(e)))
+            page.on('pageerror', lambda e: errors.append(e.stack))
             page.goto(f'http://127.0.0.1:{server.server_port}', wait_until='networkidle')
             canvas = page.locator('#workspace')
             expect(canvas).to_have_attribute('data-ready','true')
             assert canvas.bounding_box()['width'] == 1440
+            assert page.locator('html').get_attribute('lang') == 'de'
+            assert 'IT-Systemintegration' in page.title()
+            assert 'Deutsch B2' in page.locator('.profile-badge').inner_text()
             assert page.locator('#pause-scene').get_attribute('aria-pressed') == 'true'
             page.screenshot(path=str(output/'immersive-home.png'))
             cameras = set()
@@ -48,7 +51,7 @@ def main():
             page.wait_for_timeout(300)
             assert before != canvas.screenshot(), 'Orbit control did not change the scene'
             page.locator('.destination-nav [data-go="work"]').click()
-            for project in ['airbcar','studio']:
+            for project in ['born2beroot','inception','netpractice','transcendence','irc','airbcar','studio']:
                 page.locator(f'[data-project="{project}"]').click()
                 expect(page.locator('#project-dialog')).to_be_visible()
                 if project=='studio':
@@ -60,7 +63,7 @@ def main():
             for y in range(260,650,65):
                 for x in range(700,1300,65):
                     page.mouse.move(x,y)
-                    if page.locator('#object-label').inner_text() in ['Open Scripts Studio','Open AIRBCAR']:
+                    if page.locator('#object-label').inner_text() in ['Born2beroot öffnen','Inception öffnen']:
                         page.mouse.click(x,y)
                         expect(page.locator('#project-dialog')).to_be_visible()
                         page.keyboard.press('Escape')
@@ -69,8 +72,11 @@ def main():
                 if selected: break
             assert selected, '3D project objects could not be selected'
             page.locator('.destination-nav [data-go="systems"]').click()
+            assert 'Lernziele' in page.locator('.story-panel[data-view="systems"]').inner_text()
             page.locator('[data-project="lab"]').click()
-            assert 'has not yet been implemented' in page.locator('#case-content').inner_text()
+            assert 'noch nicht umgesetzt' in page.locator('#case-content').inner_text()
+            assert page.locator('#case-content svg').count() == 1
+            assert 'Active Directory' in page.locator('#case-content').inner_text()
             page.keyboard.press('Escape')
             page.locator('#read-mode').click()
             assert page.locator('.story-panel[data-view]:visible').count()==5
@@ -80,7 +86,7 @@ def main():
             page.locator('.destination-nav [data-go="contact"]').click()
             first=canvas.get_attribute('data-camera')
             page.wait_for_timeout(300)
-            assert first != canvas.get_attribute('data-camera')
+            expect(canvas).not_to_have_attribute('data-camera', first, timeout=5000)
             page.emulate_media(reduced_motion='reduce')
             for width,height in [(1024,900),(390,844),(390,640)]:
                 page.set_viewport_size({'width':width,'height':height})
