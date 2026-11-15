@@ -24,6 +24,16 @@ def main():
                 args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
             page = browser.new_page(viewport={'width':1440,'height':1000}, reduced_motion='reduce')
             page.on('pageerror', lambda e: errors.append(e.stack))
+            page.add_init_script("""
+                window.__audioContexts=[];
+                const NativeAudio=window.AudioContext;
+                if(NativeAudio)window.AudioContext=class extends NativeAudio{
+                    constructor(...args){super(...args);window.__audioContexts.push(this);}
+                    createDynamicsCompressor(){const node=super.createDynamicsCompressor();
+                        const meter=this.createAnalyser();meter.fftSize=2048;node.connect(meter);
+                        window.__musicMeter=meter;return node;}
+                };
+            """)
             page.goto(f'http://127.0.0.1:{server.server_port}', wait_until='networkidle')
             canvas = page.locator('#workspace')
             expect(canvas).to_have_attribute('data-ready','true')
@@ -32,6 +42,24 @@ def main():
             assert 'IT-Systemintegration' in page.title()
             assert 'Deutsch B2' in page.locator('.profile-badge').inner_text()
             assert page.locator('#pause-scene').get_attribute('aria-pressed') == 'true'
+            expect(page.locator('.music-controls')).to_have_attribute('data-music-state','paused')
+            assert page.evaluate('window.__audioContexts.length')==0, 'Audio was initialized without user input'
+            page.locator('#music-toggle').click()
+            expect(page.locator('.music-controls')).to_have_attribute('data-music-state','playing')
+            page.wait_for_function("""()=>{const m=window.__musicMeter;if(!m)return false;
+                const a=new Float32Array(m.fftSize);m.getFloatTimeDomainData(a);
+                return a.some(n=>Math.abs(n)>.00001)}""")
+            assert page.evaluate('window.__audioContexts[0].state')=='running'
+            page.locator('#music-volume').focus()
+            page.keyboard.press('Home')
+            assert page.locator('#music-volume').input_value()=='0'
+            page.wait_for_function("""()=>{const m=window.__musicMeter;const a=new Float32Array(m.fftSize);
+                m.getFloatTimeDomainData(a);return a.every(n=>Math.abs(n)<.00001)}""")
+            page.keyboard.press('End')
+            assert page.locator('#music-volume').input_value()=='100'
+            page.locator('#music-toggle').click()
+            expect(page.locator('.music-controls')).to_have_attribute('data-music-state','paused')
+            assert page.evaluate('window.__audioContexts[0].state')=='suspended'
             page.screenshot(path=str(output/'immersive-home.png'))
             cameras = set()
             for view in ['work','systems','about','contact','home']:
@@ -108,6 +136,11 @@ def main():
             expect(page.locator('html')).to_have_attribute('lang','en')
             page.locator('.destination-nav [data-go="home"]').click()
             assert 'Networks' in page.locator('#home-title').inner_text()
+            expect(page.locator('#music-toggle')).to_have_attribute('aria-label','Play music')
+            expect(page.locator('.music-controls')).to_have_attribute('data-music-state','paused')
+            assert page.locator('#music-volume').input_value()=='100'
+            assert page.evaluate('window.__audioContexts.length')==0, 'Music resumed automatically after reload'
+            page.locator('#music-volume').evaluate("e=>{e.value='25';e.dispatchEvent(new Event('input',{bubbles:true}))}")
             page.screenshot(path=str(output/'english-home.png'))
             page.set_viewport_size({'width':390,'height':844})
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
@@ -147,7 +180,7 @@ def main():
             expect(fallback.locator('#project-dialog')).to_be_visible()
             browser.close()
         assert not errors, errors
-        result={'status':'passed','checks':['fullscreen real WebGL world','five distinct camera destinations','animated camera travel','3D object selection','orbit controls','project dialogs','reading view','reduced motion','tablet and mobile layouts','WebGL fallback','English/German content and case studies','language persistence','Start CV and GitHub links','no JavaScript errors']}
+        result={'status':'passed','checks':['fullscreen real WebGL world','five distinct camera destinations','animated camera travel','3D object selection','orbit controls','project dialogs','reading view','reduced motion','tablet and mobile layouts','WebGL fallback','English/German content and case studies','language persistence','Start CV and GitHub links','music output and mute','music play/pause and volume persistence','no audio autoplay','no JavaScript errors']}
         (output/'result.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
         print(json.dumps(result,indent=2))
     finally:

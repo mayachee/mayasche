@@ -66,3 +66,12 @@ The selection is remembered locally. German is the default; `?lang=en` and
 `?lang=de` support language-specific links. Start contains both CVs and GitHub.
 English content is in `dist/translations.js`, German content in `index.html`
 and `app.js`; scene label translations are in `scene.js`.
+
+## Optional music
+
+The bottom controls play an original ambient chord/arpeggio loop synthesized
+locally with Web Audio (`dist/music.js`). No audio is downloaded. Playback starts
+only on a visitor's click, with a volume slider and play/pause. Volume is saved
+locally; playback is never restored automatically on reload. Hidden tabs pause
+audio and resume only if the visitor previously enabled it. The composition is
+72 BPM with four soft chord groups; edit the frequencies in `music.js` to change it.
