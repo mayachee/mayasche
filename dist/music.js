@@ -1,28 +1,33 @@
-/* An original, locally synthesized ambient loop. No remote audio or autoplay. */
-const toggle=document.querySelector('#music-toggle');
-const volume=document.querySelector('#music-volume');
-const player=document.querySelector('.music-controls');
-const copy={de:{play:'Musik abspielen',pause:'Musik pausieren',label:'Musik',volume:'Musiklautstärke',error:'Audio nicht verfügbar'},en:{play:'Play music',pause:'Pause music',label:'Music',volume:'Music volume',error:'Audio unavailable'}};
-let context,master,bus,timer,nextBeat=0,nextTime=0,playing=false,busy=false,failed=false,operation=0;
-const beat=60/72;
-const chords=[
- {bass:73.416,notes:[146.832,174.614,220,261.626,329.628]},
- {bass:58.270,notes:[116.541,146.832,174.614,220,261.626]},
- {bass:87.307,notes:[174.614,220,261.626,329.628,391.995]},
- {bass:65.406,notes:[130.813,164.814,195.998,293.665,329.628]}
-];
+/* Official YouTube embed: no copied recording or hidden/background video. */
+const videoId='WAoLJ8GbA4Y';
+const toggle=document.querySelector('#music-toggle'),volume=document.querySelector('#music-volume'),controls=document.querySelector('.music-controls');
+const panel=document.querySelector('#recording-panel'),hint=document.querySelector('#recording-status'),close=document.querySelector('#recording-close');
+const copy={
+ de:{play:'Musik abspielen',pause:'Musik pausieren',label:'Musik',volume:'Musiklautstärke',close:'Player schließen und Musik pausieren',loading:'Aufnahme wird geladen …',blocked:'Autoplay wurde blockiert. Zum Anhören auf Play drücken.',playing:'Wiedergabe: Wiener Philharmoniker · Gustavo Dudamel',paused:'Musik pausiert.',error:'Player nicht verfügbar. Die Aufnahme kann direkt auf YouTube geöffnet werden.',source:'Auf YouTube ansehen ↗'},
+ en:{play:'Play music',pause:'Pause music',label:'Music',volume:'Music volume',close:'Close player and pause music',loading:'Loading the recording …',blocked:'Autoplay was blocked. Press Play to listen.',playing:'Playing: Vienna Philharmonic · Gustavo Dudamel',paused:'Music paused.',error:'Player unavailable. Open the recording directly on YouTube.',source:'Watch on YouTube ↗'}
+};
+let player,ready=false,state='loading',wanted=true,playing=false,hiddenPause=false,disposed=false;
 try{const saved=localStorage.getItem('portfolio-music-volume');if(saved!==null&&Number.isFinite(Number(saved)))volume.value=String(Math.max(0,Math.min(100,Number(saved))));}catch{}
-function labels(){const t=copy[document.documentElement.lang]||copy.de;toggle.setAttribute('aria-label',failed?t.error:playing?t.pause:t.play);toggle.setAttribute('aria-pressed',String(playing));toggle.querySelector('.music-caption').textContent=failed?t.error:t.label;toggle.querySelector('.music-icon').textContent=playing?'Ⅱ':'♫';volume.setAttribute('aria-label',t.volume);volume.title=t.volume;player.dataset.musicState=failed?'unavailable':playing?'playing':'paused';}
-function voice(frequency,start,duration,level,type='sine',pan=0){const osc=context.createOscillator(),gain=context.createGain(),stereo=context.createStereoPanner();osc.type=type;osc.frequency.value=frequency;stereo.pan.value=pan;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(level,start+Math.min(duration*.3,1.3));gain.gain.setValueAtTime(level,start+duration*.55);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);osc.connect(gain);gain.connect(stereo);stereo.connect(bus);osc.onended=()=>{osc.disconnect();gain.disconnect();stereo.disconnect();};osc.start(start);osc.stop(start+duration+.02);}
-function schedule(){if(!playing||context.state!=='running')return;while(nextTime<context.currentTime+.25){const chord=chords[Math.floor(nextBeat/8)%chords.length],position=nextBeat%8;if(position===0){chord.notes.forEach((n,i)=>voice(n,nextTime,beat*9,.035,'sine',(i-2)*.2));voice(chord.bass,nextTime,beat*7,.06);}
- const pattern=[0,2,4,1,3,2,4,1];voice(chord.notes[pattern[position]]*2,nextTime,beat*1.9,.045,'sine',position%2?.32:-.32);nextBeat++;nextTime+=beat;}}
-function stopTimer(){clearInterval(timer);timer=null;}
-function init(){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error('unsupported');context=new Audio();master=context.createGain();master.gain.value=Number(volume.value)/100*.8;bus=context.createBiquadFilter();bus.type='lowpass';bus.frequency.value=1500;bus.Q.value=.3;const compressor=context.createDynamicsCompressor();compressor.threshold.value=-20;compressor.ratio.value=3;const delay=context.createDelay(2),feedback=context.createGain(),wet=context.createGain();delay.delayTime.value=beat*.75;feedback.gain.value=.24;wet.gain.value=.18;bus.connect(master);bus.connect(delay);delay.connect(feedback);feedback.connect(delay);delay.connect(wet);wet.connect(master);master.connect(compressor);compressor.connect(context.destination);}
-async function syncPlayback(){const id=++operation;stopTimer();if(!context)return;if(playing&&!document.hidden){await context.resume();if(id!==operation)return;if(context.state!=='running')throw Error('suspended');nextTime=Math.max(nextTime,context.currentTime+.04);schedule();timer=setInterval(schedule,100);}else if(context.state==='running'){await context.suspend();}}
-toggle.addEventListener('click',async()=>{if(busy)return;busy=true;toggle.disabled=true;try{if(!context)init();playing=!playing;failed=false;await syncPlayback();}catch{playing=false;failed=true;stopTimer();if(context?.state==='running')await context.suspend().catch(()=>{});}finally{busy=false;toggle.disabled=false;labels();}});
-volume.addEventListener('input',()=>{const value=Number(volume.value)/100*.8;if(master)master.gain.setTargetAtTime(value,context.currentTime,.06);try{localStorage.setItem('portfolio-music-volume',volume.value);}catch{}});
+function labels(){const t=copy[document.documentElement.lang]||copy.de;toggle.setAttribute('aria-label',playing?t.pause:t.play);toggle.setAttribute('aria-pressed',String(playing));toggle.setAttribute('aria-expanded',String(!panel.hidden));toggle.querySelector('.music-caption').textContent=t.label;toggle.querySelector('.music-icon').textContent=playing?'Ⅱ':'♫';volume.setAttribute('aria-label',t.volume);volume.title=t.volume;close.setAttribute('aria-label',t.close);hint.textContent=t[state]||t.paused;document.querySelector('#recording-source').textContent=t.source;controls.dataset.musicState=state;}
+function setState(next){state=next;playing=next==='playing';labels();}
+function play(){if(!ready||panel.hidden||document.hidden)return;player.setVolume(Number(volume.value));player.unMute();player.playVideo();}
+function fail(){wanted=false;ready=false;clearTimeout(timeout);setState('error');}
+function createPlayer(){if(disposed||player)return;player=new window.YT.Player('recording-player',{
+ width:'360',height:'203',videoId,host:'https://www.youtube-nocookie.com',
+ playerVars:{autoplay:1,playsinline:1,controls:1,loop:1,playlist:videoId,origin:location.origin},
+ events:{onReady:e=>{clearTimeout(timeout);ready=true;const iframe=e.target.getIframe();iframe.title='Barber: Adagio for Strings, Op. 11 — Vienna Philharmonic & Gustavo Dudamel (SNC 2019)';iframe.setAttribute('allow','autoplay; encrypted-media; picture-in-picture; fullscreen');iframe.setAttribute('referrerpolicy','strict-origin-when-cross-origin');if(wanted&&!panel.hidden&&!document.hidden)play();else{e.target.pauseVideo();setState('paused');}},
+ onStateChange:e=>{if(e.data===1){if(panel.hidden||document.hidden){player.pauseVideo();return;}wanted=true;setState('playing');}else if(e.data===2){setState('paused');}else if(e.data===0){setState('paused');}else if(e.data===3&&!playing){setState('loading');}},
+ onAutoplayBlocked:()=>{setState('blocked');},onError:fail}
+ });}
+const timeout=setTimeout(fail,18000);
+toggle.addEventListener('click',()=>{if(playing){wanted=false;player.pauseVideo();setState('paused');}else{panel.hidden=false;wanted=true;if(ready)play();else if(state==='error'){setState('error');}labels();}});
+close.addEventListener('click',()=>{wanted=false;hiddenPause=false;if(ready)player.pauseVideo();panel.hidden=true;setState('paused');toggle.focus();});
+volume.addEventListener('input',()=>{if(ready)player.setVolume(Number(volume.value));try{localStorage.setItem('portfolio-music-volume',volume.value);}catch{}});
 document.addEventListener('worldlanguage',labels);
-document.addEventListener('visibilitychange',()=>{if(context)syncPlayback().catch(()=>{playing=false;failed=true;stopTimer();labels();});});
-window.addEventListener('pagehide',()=>{playing=false;stopTimer();context?.close().catch(()=>{});labels();});
-window.addEventListener('pageshow',()=>{if(context?.state==='closed'){context=null;master=null;bus=null;nextBeat=0;nextTime=0;}labels();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){hiddenPause=wanted&&playing;if(ready)player.pauseVideo();}else if(hiddenPause&&wanted&&!panel.hidden){hiddenPause=false;play();}});
+new IntersectionObserver(entries=>{const visible=entries[0].intersectionRatio>=.5;if(!visible&&ready&&playing)player.pauseVideo();},{threshold:[0,.5,1]}).observe(panel);
+new MutationObserver(()=>{if(document.querySelector('#project-dialog').open&&ready&&playing)player.pauseVideo();}).observe(document.querySelector('#project-dialog'),{attributes:true,attributeFilter:['open']});
+window.addEventListener('pagehide',()=>{disposed=true;wanted=false;clearTimeout(timeout);if(ready)player.pauseVideo();});
+window.addEventListener('pageshow',()=>{disposed=false;});
 labels();
+if(window.YT?.Player)createPlayer();else{window.onYouTubeIframeAPIReady=createPlayer;const script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';script.async=true;script.onerror=fail;document.head.append(script);}

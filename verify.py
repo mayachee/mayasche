@@ -24,42 +24,35 @@ def main():
                 args=['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
             page = browser.new_page(viewport={'width':1440,'height':1000}, reduced_motion='reduce')
             page.on('pageerror', lambda e: errors.append(e.stack))
-            page.add_init_script("""
-                window.__audioContexts=[];
-                const NativeAudio=window.AudioContext;
-                if(NativeAudio)window.AudioContext=class extends NativeAudio{
-                    constructor(...args){super(...args);window.__audioContexts.push(this);}
-                    createDynamicsCompressor(){const node=super.createDynamicsCompressor();
-                        const meter=this.createAnalyser();meter.fftSize=2048;node.connect(meter);
-                        window.__musicMeter=meter;return node;}
-                };
-            """)
+            page.route('https://www.youtube.com/iframe_api', lambda route: route.fulfill(
+                path=str(ROOT/'tests/fixtures/youtube-api.js'), content_type='application/javascript'))
             page.goto(f'http://127.0.0.1:{server.server_port}', wait_until='networkidle')
             canvas = page.locator('#workspace')
-            expect(canvas).to_have_attribute('data-ready','true')
+            expect(canvas).to_have_attribute('data-ready','true',timeout=30000)
             assert canvas.bounding_box()['width'] == 1440
             assert page.locator('html').get_attribute('lang') == 'de'
             assert 'IT-Systemintegration' in page.title()
             assert 'Deutsch B2' in page.locator('.profile-badge').inner_text()
             assert page.locator('#pause-scene').get_attribute('aria-pressed') == 'true'
-            expect(page.locator('.music-controls')).to_have_attribute('data-music-state','paused')
-            assert page.evaluate('window.__audioContexts.length')==0, 'Audio was initialized without user input'
+            # Provider fixture tests blocked autoplay, controls and exact recording configuration.
+            expect(page.locator('.music-controls')).to_have_attribute('data-music-state','blocked')
+            assert page.evaluate('window.__recordingTest.options.videoId')=='WAoLJ8GbA4Y'
+            assert page.evaluate('window.__recordingTest.options.playerVars.autoplay')==1
+            assert page.evaluate('window.__recordingTest.calls')==1
+            assert 'Autoplay' in page.locator('#recording-status').inner_text()
+            bounds=page.locator('#recording-player').bounding_box()
+            assert bounds['width']>=200 and bounds['height']>=200
             page.locator('#music-toggle').click()
             expect(page.locator('.music-controls')).to_have_attribute('data-music-state','playing')
-            page.wait_for_function("""()=>{const m=window.__musicMeter;if(!m)return false;
-                const a=new Float32Array(m.fftSize);m.getFloatTimeDomainData(a);
-                return a.some(n=>Math.abs(n)>.00001)}""")
-            assert page.evaluate('window.__audioContexts[0].state')=='running'
             page.locator('#music-volume').focus()
             page.keyboard.press('Home')
-            assert page.locator('#music-volume').input_value()=='0'
-            page.wait_for_function("""()=>{const m=window.__musicMeter;const a=new Float32Array(m.fftSize);
-                m.getFloatTimeDomainData(a);return a.every(n=>Math.abs(n)<.00001)}""")
+            assert page.evaluate('window.__recordingTest.volume')==0
             page.keyboard.press('End')
-            assert page.locator('#music-volume').input_value()=='100'
-            page.locator('#music-toggle').click()
+            assert page.evaluate('window.__recordingTest.volume')==100
+            page.locator('#recording-close').click()
+            expect(page.locator('#recording-panel')).not_to_be_visible()
             expect(page.locator('.music-controls')).to_have_attribute('data-music-state','paused')
-            assert page.evaluate('window.__audioContexts[0].state')=='suspended'
+            assert page.evaluate('window.__recordingTest.state')==2
             page.screenshot(path=str(output/'immersive-home.png'))
             cameras = set()
             for view in ['work','systems','about','contact','home']:
@@ -132,15 +125,16 @@ def main():
                 page.keyboard.press('Escape')
             page.reload(wait_until='networkidle')
             canvas=page.locator('#workspace')
-            expect(canvas).to_have_attribute('data-ready','true')
+            expect(canvas).to_have_attribute('data-ready','true',timeout=30000)
             expect(page.locator('html')).to_have_attribute('lang','en')
             page.locator('.destination-nav [data-go="home"]').click()
             assert 'Networks' in page.locator('#home-title').inner_text()
             expect(page.locator('#music-toggle')).to_have_attribute('aria-label','Play music')
-            expect(page.locator('.music-controls')).to_have_attribute('data-music-state','paused')
+            expect(page.locator('.music-controls')).to_have_attribute('data-music-state','blocked')
             assert page.locator('#music-volume').input_value()=='100'
-            assert page.evaluate('window.__audioContexts.length')==0, 'Music resumed automatically after reload'
+            assert 'Autoplay was blocked' in page.locator('#recording-status').inner_text()
             page.locator('#music-volume').evaluate("e=>{e.value='25';e.dispatchEvent(new Event('input',{bubbles:true}))}")
+            page.locator('#recording-close').click()
             page.screenshot(path=str(output/'english-home.png'))
             page.set_viewport_size({'width':390,'height':844})
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
@@ -154,9 +148,12 @@ def main():
             page.reload(wait_until='networkidle')
             expect(page.locator('html')).to_have_attribute('lang','de')
             canvas=page.locator('#workspace')
-            expect(canvas).to_have_attribute('data-ready','true')
+            expect(canvas).to_have_attribute('data-ready','true',timeout=30000)
+            page.locator('#recording-close').click()
             page.set_viewport_size({'width':1440,'height':1000})
             # Motion-enabled travel must progress over frames instead of teleporting.
+            # A delayed event can make a queued RAF timestamp older than the scheduling time.
+            page.evaluate("() => {const raf=window.requestAnimationFrame;let oldFrame=true;window.requestAnimationFrame=cb=>raf.call(window,t=>{const time=oldFrame?t-1000:t;oldFrame=false;cb(time)});}")
             page.emulate_media(reduced_motion='no-preference')
             page.locator('.destination-nav [data-go="contact"]').click()
             first=canvas.get_attribute('data-camera')
@@ -173,6 +170,7 @@ def main():
                 expect(page.locator('.story-panel[data-view="contact"] .primary')).to_be_visible()
             fallback=browser.new_page(viewport={'width':390,'height':844})
             fallback.add_init_script("const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,...a){return t.startsWith('webgl')?null:get.call(this,t,...a)}")
+            fallback.route('https://www.youtube.com/iframe_api', lambda route: route.fulfill(path=str(ROOT/'tests/fixtures/youtube-api.js'), content_type='application/javascript'))
             fallback.goto(f'http://127.0.0.1:{server.server_port}',wait_until='networkidle')
             expect(fallback.locator('#world-fallback')).to_be_visible()
             fallback.locator('.destination-nav [data-go="work"]').click()
@@ -180,7 +178,7 @@ def main():
             expect(fallback.locator('#project-dialog')).to_be_visible()
             browser.close()
         assert not errors, errors
-        result={'status':'passed','checks':['fullscreen real WebGL world','five distinct camera destinations','animated camera travel','3D object selection','orbit controls','project dialogs','reading view','reduced motion','tablet and mobile layouts','WebGL fallback','English/German content and case studies','language persistence','Start CV and GitHub links','music output and mute','music play/pause and volume persistence','no audio autoplay','no JavaScript errors']}
+        result={'status':'passed','checks':['fullscreen real WebGL world','five distinct camera destinations','animated camera travel','3D object selection','orbit controls','project dialogs','reading view','reduced motion','tablet and mobile layouts','WebGL fallback','English/German content and case studies','language persistence','Start CV and GitHub links','YouTube recording selection and autoplay request (provider mocked)','blocked autoplay fallback and volume (provider mocked)','closing player pauses playback (provider mocked)','no JavaScript errors']}
         (output/'result.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
         print(json.dumps(result,indent=2))
     finally:

@@ -67,11 +67,16 @@ The selection is remembered locally. German is the default; `?lang=en` and
 English content is in `dist/translations.js`, German content in `index.html`
 and `app.js`; scene label translations are in `scene.js`.
 
-## Optional music
+## Music recording
 
-The bottom controls play an original ambient chord/arpeggio loop synthesized
-locally with Web Audio (`dist/music.js`). No audio is downloaded. Playback starts
-only on a visitor's click, with a volume slider and play/pause. Volume is saved
-locally; playback is never restored automatically on reload. Hidden tabs pause
-audio and resume only if the visitor previously enabled it. The composition is
-72 BPM with four soft chord groups; edit the frequencies in `music.js` to change it.
+The visible YouTube player embeds Sony Classical's Vienna Philharmonic / Gustavo
+Dudamel performance of Barber's Adagio for Strings, Op. 11 (Summer Night Concert
+2019), video ID `WAoLJ8GbA4Y`. No recording is downloaded or served by this repo.
+Source: https://www.youtube.com/watch?v=WAoLJ8GbA4Y
+
+The player attempts autoplay with sound. Browser policies may block it; in that
+case a translated Play prompt remains available. Playback status comes from the
+YouTube player, rather than assuming autoplay worked. Closing/hiding the player
+pauses playback. Volume is remembered locally. YouTube availability, advertising,
+regional restrictions and browser playback policy remain outside this site's control.
+The visible video viewport stays at least 200 x 200 pixels.
