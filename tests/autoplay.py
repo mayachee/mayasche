@@ -1,4 +1,4 @@
-﻿"""Check real music autoplay under permissive and restrictive browser policies."""
+"""Check real music autoplay under permissive and restrictive browser policies."""
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -30,9 +30,16 @@ def main():
                 page.route('**/scene.js', lambda route: route.fulfill(body='', content_type='text/javascript'))
                 page.goto(f'http://127.0.0.1:{server.server_port}', wait_until='domcontentloaded')
                 controls = page.locator('.music-controls')
-                if policy == 'user-gesture-required':
-                    expect(controls).to_have_attribute('data-music-state', 'blocked')
-                    page.locator('.destination-nav [data-go="work"]').click()
+                expect(page.locator('#welcome-screen')).to_be_visible()
+                assert page.locator('#background-audio').evaluate('e=>e.paused')
+                output=ROOT/'qa-output'
+                output.mkdir(exist_ok=True)
+                page.screenshot(path=str(output/f'welcome-{policy}.png'))
+                page.locator('#welcome-screen [data-language="en"]').click()
+                expect(page.locator('#enter-world')).to_contain_text('Enter my world')
+                assert page.locator('#background-audio').evaluate('e=>e.paused')
+                page.locator('#enter-world').click()
+                expect(page.locator('#welcome-screen')).not_to_be_visible()
                 expect(controls).to_have_attribute('data-music-state', 'playing')
                 page.wait_for_function("document.querySelector('#background-audio').currentTime>0")
                 expect(page.locator('#background-audio')).not_to_be_visible()
@@ -52,11 +59,19 @@ def main():
             page = browser.new_page()
             page.route('**/scene.js', lambda route: route.fulfill(body='', content_type='text/javascript'))
             page.goto(f'http://127.0.0.1:{server.server_port}', wait_until='domcontentloaded')
-            expect(page.locator('.music-controls')).to_have_attribute('data-music-state', 'blocked')
-            page.keyboard.press('Tab')
+            page.set_viewport_size({'width':390,'height':640})
+            expect(page.locator('#welcome-screen')).to_be_visible()
+            page.keyboard.press('Escape')
+            expect(page.locator('#welcome-screen')).to_be_visible()
+            assert page.locator('#background-audio').evaluate('e=>e.paused')
+            page.screenshot(path=str(ROOT/'qa-output/welcome-mobile.png'))
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            page.locator('#enter-world').focus()
+            page.keyboard.press('Enter')
             expect(page.locator('.music-controls')).to_have_attribute('data-music-state', 'playing')
+            expect(page.locator('#welcome-screen')).not_to_be_visible()
             browser.close()
-            print('PASS: keyboard interaction starts music without using music controls')
+            print('PASS: keyboard entry starts music and dismisses welcome screen')
     finally:
         server.shutdown()
         server.server_close()

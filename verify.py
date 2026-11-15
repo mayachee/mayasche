@@ -25,6 +25,7 @@ def main():
             page = browser.new_page(viewport={'width':1440,'height':1000}, reduced_motion='reduce')
             page.on('pageerror', lambda e: errors.append(e.stack))
             page.goto(f'http://127.0.0.1:{server.server_port}', wait_until='networkidle')
+            page.locator('#enter-world').click()
             canvas = page.locator('#workspace')
             expect(canvas).to_have_attribute('data-ready','true',timeout=30000)
             assert canvas.bounding_box()['width'] == 1440
@@ -106,9 +107,9 @@ def main():
             assert home.locator('.start-links a[href="https://github.com/mayachee"]').count()==1
             assert home.locator('a[href$="Yassine_Ayache_CV.pdf"]').count()==1
             assert home.locator('a[href$="Lebenslauf_MYassine_Ayache.pdf"]').count()==1
-            page.locator('[data-language="en"]').click()
+            page.locator('header [data-language="en"]').click()
             expect(page.locator('html')).to_have_attribute('lang','en')
-            expect(page.locator('[data-language="en"]')).to_have_attribute('aria-pressed','true')
+            expect(page.locator('header [data-language="en"]')).to_have_attribute('aria-pressed','true')
             expect(page.locator('.story-panel[data-view="systems"]')).to_be_visible()
             assert 'learning goals' in page.locator('.story-panel[data-view="systems"]').inner_text()
             page.locator('[data-project="lab"]').click()
@@ -123,6 +124,7 @@ def main():
                 assert 'system integration' in page.locator('#case-content').inner_text().lower()
                 page.keyboard.press('Escape')
             page.reload(wait_until='networkidle')
+            page.locator('#enter-world').click()
             canvas=page.locator('#workspace')
             expect(canvas).to_have_attribute('data-ready','true',timeout=30000)
             expect(page.locator('html')).to_have_attribute('lang','en')
@@ -136,14 +138,15 @@ def main():
             page.screenshot(path=str(output/'english-home.png'))
             page.set_viewport_size({'width':390,'height':844})
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
-            for selector in ['.brand','[data-language="en"]','[data-language="de"]','#read-mode']:
+            for selector in ['.brand','header [data-language="en"]','header [data-language="de"]','#read-mode']:
                 b=page.locator(selector).bounding_box()
                 assert b['x']>=0 and b['x']+b['width']<=390,selector
             page.screenshot(path=str(output/'english-mobile.png'))
-            page.locator('[data-language="de"]').click()
+            page.locator('header [data-language="de"]').click()
             expect(page.locator('html')).to_have_attribute('lang','de')
             assert 'Netzwerke' in page.locator('#home-title').inner_text()
             page.reload(wait_until='networkidle')
+            page.locator('#enter-world').click()
             expect(page.locator('html')).to_have_attribute('lang','de')
             canvas=page.locator('#workspace')
             expect(canvas).to_have_attribute('data-ready','true',timeout=30000)
@@ -172,6 +175,7 @@ def main():
             fallback=browser.new_page(viewport={'width':390,'height':844})
             fallback.add_init_script("const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,...a){return t.startsWith('webgl')?null:get.call(this,t,...a)}")
             fallback.goto(f'http://127.0.0.1:{server.server_port}',wait_until='networkidle')
+            fallback.locator('#enter-world').click()
             expect(fallback.locator('#world-fallback')).to_be_visible()
             fallback.locator('.destination-nav [data-go="work"]').click()
             fallback.locator('[data-project="studio"]').click()
