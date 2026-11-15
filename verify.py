@@ -81,6 +81,48 @@ def main():
             page.locator('#read-mode').click()
             assert page.locator('.story-panel[data-view]:visible').count()==5
             page.locator('#read-mode').click()
+            # Language changes preserve the station, translate cases and persist after reload.
+            home=page.locator('.story-panel[data-view="home"]')
+            assert home.locator('a[href="https://github.com/mayachee"]').count()==1
+            assert home.locator('a[href$="Yassine_Ayache_CV.pdf"]').count()==1
+            assert home.locator('a[href$="Yassine_Ayache_lebenslauf.pdf"]').count()==1
+            page.locator('[data-language="en"]').click()
+            expect(page.locator('html')).to_have_attribute('lang','en')
+            expect(page.locator('[data-language="en"]')).to_have_attribute('aria-pressed','true')
+            expect(page.locator('.story-panel[data-view="systems"]')).to_be_visible()
+            assert 'learning goals' in page.locator('.story-panel[data-view="systems"]').inner_text()
+            page.locator('[data-project="lab"]').click()
+            assert 'not yet been implemented' in page.locator('#case-content').inner_text()
+            assert 'Planned lab' in page.locator('#case-content figcaption').inner_text()
+            page.keyboard.press('Escape')
+            page.locator('.destination-nav [data-go="work"]').click()
+            for project in ['born2beroot','inception','netpractice','transcendence','irc','airbcar','studio']:
+                page.locator(f'[data-project="{project}"]').click()
+                expect(page.locator('#project-dialog')).to_be_visible()
+                assert 'Relevanz' not in page.locator('#case-content').inner_text()
+                assert 'system integration' in page.locator('#case-content').inner_text().lower()
+                page.keyboard.press('Escape')
+            page.reload(wait_until='networkidle')
+            canvas=page.locator('#workspace')
+            expect(canvas).to_have_attribute('data-ready','true')
+            expect(page.locator('html')).to_have_attribute('lang','en')
+            page.locator('.destination-nav [data-go="home"]').click()
+            assert 'Networks' in page.locator('#home-title').inner_text()
+            page.screenshot(path=str(output/'english-home.png'))
+            page.set_viewport_size({'width':390,'height':844})
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            for selector in ['.brand','[data-language="en"]','[data-language="de"]','#read-mode']:
+                b=page.locator(selector).bounding_box()
+                assert b['x']>=0 and b['x']+b['width']<=390,selector
+            page.screenshot(path=str(output/'english-mobile.png'))
+            page.locator('[data-language="de"]').click()
+            expect(page.locator('html')).to_have_attribute('lang','de')
+            assert 'Netzwerke' in page.locator('#home-title').inner_text()
+            page.reload(wait_until='networkidle')
+            expect(page.locator('html')).to_have_attribute('lang','de')
+            canvas=page.locator('#workspace')
+            expect(canvas).to_have_attribute('data-ready','true')
+            page.set_viewport_size({'width':1440,'height':1000})
             # Motion-enabled travel must progress over frames instead of teleporting.
             page.emulate_media(reduced_motion='no-preference')
             page.locator('.destination-nav [data-go="contact"]').click()
@@ -105,7 +147,7 @@ def main():
             expect(fallback.locator('#project-dialog')).to_be_visible()
             browser.close()
         assert not errors, errors
-        result={'status':'passed','checks':['fullscreen real WebGL world','five distinct camera destinations','animated camera travel','3D object selection','orbit controls','project dialogs','reading view','reduced motion','tablet and mobile layouts','WebGL fallback','no JavaScript errors']}
+        result={'status':'passed','checks':['fullscreen real WebGL world','five distinct camera destinations','animated camera travel','3D object selection','orbit controls','project dialogs','reading view','reduced motion','tablet and mobile layouts','WebGL fallback','English/German content and case studies','language persistence','Start CV and GitHub links','no JavaScript errors']}
         (output/'result.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
         print(json.dumps(result,indent=2))
     finally:

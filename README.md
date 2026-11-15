@@ -58,3 +58,11 @@ root, and keep the settings from `vercel.json`. Connect its `main` branch for
 automatic production deployments. For the CLI, run `npx vercel login` followed
 by `npx vercel --prod` from this project directory. Account login must be
 completed by the account owner; never commit tokens or `.vercel/` state.
+
+## Languages
+
+English/Deutsch buttons translate the portfolio, project dialogs and 3D labels.
+The selection is remembered locally. German is the default; `?lang=en` and
+`?lang=de` support language-specific links. Start contains both CVs and GitHub.
+English content is in `dist/translations.js`, German content in `index.html`
+and `app.js`; scene label translations are in `scene.js`.
