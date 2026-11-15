@@ -69,20 +69,14 @@ and `app.js`; scene label translations are in `scene.js`.
 
 ## Music recording
 
-The visible YouTube player embeds Sony Classical's Vienna Philharmonic / Gustavo
-Dudamel performance of Barber's Adagio for Strings, Op. 11 (Summer Night Concert
-2019), video ID `WAoLJ8GbA4Y`. No recording is downloaded or served by this repo.
-Source: https://www.youtube.com/watch?v=WAoLJ8GbA4Y
+The supplied Vienna Philharmonic / Gustavo Dudamel MP3 plays through a hidden
+native audio element, replacing the YouTube embed. A small play/pause toggle
+and volume slider remain available. Playback loops and attempts autoplay;
+when browser policy blocks sound, the toggle prompts the visitor to play.
+Volume is remembered locally. Playback pauses when the page is hidden.
 
-The player attempts autoplay with sound. Browser policies may block it; in that
-case a translated Play prompt remains available. Playback status comes from the
-YouTube player, rather than assuming autoplay worked. Closing/hiding the player
-pauses playback. Volume is remembered locally. YouTube availability, advertising,
-regional restrictions and browser playback policy remain outside this site's control.
-The visible video viewport stays at least 200 x 200 pixels.
+## Profile image and CV
 
-## Profile image
-
-Start uses the public GitHub avatar from `github.com/mayachee.png`, stored locally
-under `dist/assets/profile-avatar.jpg`. Its framing is handled with CSS.
-The English/German welcome message is included in both language versions.
+Station 04 (Contact) displays the supplied Gemini portrait. All German CV links
+use the uploaded dist/assets/Lebenslauf_MYassine_Ayache.pdf. The PDF content is
+preserved as supplied. The English CV is unchanged.
