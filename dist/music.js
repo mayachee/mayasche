@@ -6,8 +6,8 @@ const status=document.querySelector('#music-status');
 const welcome=document.querySelector('#welcome-screen');
 const enter=document.querySelector('#enter-world');
 const welcomeCopy={
- de:{title:'Willkommen in<br><em>meiner Welt.</em>',description:'Linux. Netzwerke. Systemintegration.',enter:'Meine Welt betreten',sound:'Ein Portfolio mit Musik. Jederzeit pausierbar.'},
- en:{title:'Welcome to<br><em>my world.</em>',description:'Linux. Networks. System integration.',enter:'Enter my world',sound:'A portfolio with music. Pause it anytime.'}
+ de:{title:'Meine Welt.<br><em>Verbunden.</em>',description:'Zwischen Linux, Netzwerken und der Idee, dass alles zusammenwirkt.',enter:'Meine Welt betreten',sound:'Musik begleitet Ihren Einstieg. Jederzeit pausierbar.'},
+ en:{title:'My world.<br><em>Connected.</em>',description:'Where Linux, networks, and the idea that everything works together meet.',enter:'Enter my world',sound:'Your entrance, accompanied by music. Pause it anytime.'}
 };
 let entered=false;
 const copy={
@@ -63,12 +63,18 @@ volume.addEventListener('input',()=>{
  try{localStorage.setItem('portfolio-music-volume',volume.value);}catch{}
 });
 enter.addEventListener('click',()=>{
+ if(entered)return;
  entered=true;
  wanted=true;
  // Call play synchronously inside this click to retain browser user activation.
  play();
- welcome.close();
- document.querySelector('#story').focus({preventScroll:true});
+ const finish=()=>{if(!welcome.open)return;welcome.close();document.querySelector('#story').focus({preventScroll:true});};
+ if(matchMedia('(prefers-reduced-motion: reduce)').matches)finish();
+ else{
+  welcome.classList.add('leaving');
+  welcome.addEventListener('animationend',event=>{if(event.target===welcome)finish();});
+  setTimeout(finish,1000);
+ }
 });
 welcome.addEventListener('cancel',event=>event.preventDefault());
 document.addEventListener('worldlanguage',labels);

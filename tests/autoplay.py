@@ -66,6 +66,7 @@ def main():
             assert page.locator('#background-audio').evaluate('e=>e.paused')
             page.screenshot(path=str(ROOT/'qa-output/welcome-mobile.png'))
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            page.emulate_media(reduced_motion='no-preference')
             page.locator('#enter-world').focus()
             page.keyboard.press('Enter')
             expect(page.locator('.music-controls')).to_have_attribute('data-music-state', 'playing')
