@@ -80,3 +80,9 @@ YouTube player, rather than assuming autoplay worked. Closing/hiding the player
 pauses playback. Volume is remembered locally. YouTube availability, advertising,
 regional restrictions and browser playback policy remain outside this site's control.
 The visible video viewport stays at least 200 x 200 pixels.
+
+## Profile image
+
+Start uses the public GitHub avatar from `github.com/mayachee.png`, stored locally
+under `dist/assets/profile-avatar.jpg`. Its framing is handled with CSS.
+The English/German welcome message is included in both language versions.
