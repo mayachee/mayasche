@@ -1,11 +1,11 @@
-﻿const audio=document.querySelector('#background-audio');
+const audio=document.querySelector('#background-audio');
 const toggle=document.querySelector('#music-toggle');
 const volume=document.querySelector('#music-volume');
 const controls=document.querySelector('.music-controls');
 const status=document.querySelector('#music-status');
 const copy={
  de:{play:'Musik abspielen',pause:'Musik pausieren',label:'Musik',volume:'Musiklautstärke',blocked:'Zum Anhören auf Musik drücken.',playing:'Musik wird abgespielt.',paused:'Musik pausiert.',loading:'Musik wird geladen.',error:'Musik konnte nicht geladen werden.'},
- en:{play:'Play music',pause:'Pause music',label:'Music',volume:'Music volume',blocked:'Press Music to listen.',playing:'Music is playing.',paused:'Music paused.',loading:'Loading music.',error:'Music could not be loaded.'}
+ en:{play:'Play music',pause:'Pause music',label:'Music',volume:'Music volume',blocked:'Music starts with your first interaction on the page.',playing:'Music is playing.',paused:'Music paused.',loading:'Loading music.',error:'Music could not be loaded.'}
 };
 let state='loading',wanted=true,resumeOnVisible=false,attempt=0;
 try{
@@ -50,6 +50,14 @@ volume.addEventListener('input',()=>{
  audio.volume=Number(volume.value)/100;
  try{localStorage.setItem('portfolio-music-volume',volume.value);}catch{}
 });
+// Retry inside a trusted gesture when the browser blocks audible autoplay.
+function startOnInteraction(event){
+ if(!event.isTrusted||event.target.closest?.('.music-controls')||!wanted||!audio.paused||state==='loading')return;
+ play();
+}
+for(const event of ['click','pointerup','touchend','keydown']){
+ document.addEventListener(event,startOnInteraction,{passive:true});
+}
 document.addEventListener('worldlanguage',labels);
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden){resumeOnVisible=wanted&&!audio.paused;attempt++;audio.pause();}

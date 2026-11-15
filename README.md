@@ -72,7 +72,9 @@ and `app.js`; scene label translations are in `scene.js`.
 The supplied Vienna Philharmonic / Gustavo Dudamel MP3 plays through a hidden
 native audio element, replacing the YouTube embed. A small play/pause toggle
 and volume slider remain available. Playback loops and attempts autoplay;
-when browser policy blocks sound, the toggle prompts the visitor to play.
+when browser policy blocks sound, playback starts on the first click, tap, or
+keypress anywhere on the page. Pausing with the music toggle disables these
+automatic retries until the visitor explicitly plays again.
 Volume is remembered locally. Playback pauses when the page is hidden.
 
 ## Profile image and CV
