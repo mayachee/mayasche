@@ -46,3 +46,15 @@ Born2beroot, Inception and NetPractice lead the project presentation, supported
 by ft_transcendence, ft_irc, Scripts Studio and AIRBCAR. Windows/AD, Microsoft 365
 and verified backup/restore exercises remain explicitly planned. The German CV is linked as supplied; its PDF was not edited.
 See [research, requirements and next evidence](docs/systemintegration-germany.md).
+
+## GitHub and Vercel
+
+The GitHub repository is https://github.com/mayachee/mayasche.
+`vercel.json` selects the static `dist/` output and runs JavaScript syntax checks
+before deployment. No framework build or runtime environment variables are needed.
+
+To deploy through Vercel's dashboard, import that repository, select the project
+root, and keep the settings from `vercel.json`. Connect its `main` branch for
+automatic production deployments. For the CLI, run `npx vercel login` followed
+by `npx vercel --prod` from this project directory. Account login must be
+completed by the account owner; never commit tokens or `.vercel/` state.

@@ -1,0 +1,7 @@
+qa-output
+__pycache__
+node_modules
+.git
+.openai
+docs
+verify.py
