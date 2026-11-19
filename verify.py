@@ -105,7 +105,7 @@ def main():
             # Language changes preserve the station, translate cases and persist after reload.
             home=page.locator('.story-panel[data-view="home"]')
             assert home.locator('.start-links a[href="https://github.com/mayachee"]').count()==1
-            assert home.locator('a[href$="Yassine_Ayache_CV.pdf"]').count()==1
+            assert home.locator('a[href$="CV_MYassine_Ayache_EN.pdf"]').count()==1
             assert home.locator('a[href$="Lebenslauf_MYassine_Ayache.pdf"]').count()==1
             page.locator('header [data-language="en"]').click()
             expect(page.locator('html')).to_have_attribute('lang','en')

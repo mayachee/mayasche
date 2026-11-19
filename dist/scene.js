@@ -11,10 +11,10 @@ try{renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'low-pow
 if(renderer)start();
 function start(){
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
-const scene=new T.Scene();scene.background=new T.Color('#070c16');scene.fog=new T.FogExp2('#070c16',.023);
+const scene=new T.Scene();scene.background=new T.Color('#0b1326');scene.fog=new T.FogExp2('#0b1326',.023);
 const camera=new T.PerspectiveCamera(43,1,.1,150),world=new T.Group();scene.add(world);
 scene.add(new T.HemisphereLight(0xb4e5f5,0x152235,2.3));const sun=new T.DirectionalLight(0xdefcf3,3.5);sun.position.set(-8,16,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-20,right:20,top:20,bottom:-20});sun.shadow.normalBias=.03;scene.add(sun);
-const mint=new T.MeshStandardMaterial({color:0x9bf7d3,emissive:0x4deab1,emissiveIntensity:1.4,roughness:.35});
+const mint=new T.MeshStandardMaterial({color:0xaec9f5,emissive:0x527fc8,emissiveIntensity:1.4,roughness:.35});
 const blue=new T.MeshStandardMaterial({color:0x8ec9ff,emissive:0x386dcf,emissiveIntensity:1.4});
 const metal=new T.MeshStandardMaterial({color:0x243b4c,metalness:.65,roughness:.38}),dark=new T.MeshStandardMaterial({color:0x101d2c,metalness:.45,roughness:.5}),rim=new T.MeshStandardMaterial({color:0x49647b,metalness:.7,roughness:.3});
 const interact=[],floaters=[],routes=[],spin=[],screens=[];
@@ -43,7 +43,7 @@ const contact=platform(2,-12,3.4);const portal=new T.Group();portal.position.y=2
 [[[0,.2,-2],[3,.7,-3],[6,.7,-3],[9,.2,-5]],[[0,.2,-2],[-3,.8,-4],[-6,.8,-3],[-8,.2,-6]],[[0,.2,-2],[0,.8,-6],[4,.8,-8],[2,.2,-12]]].forEach((pts,i)=>{const curve=new T.CatmullRomCurve3(pts.map(p=>new T.Vector3(...p)));world.add(new T.Mesh(new T.TubeGeometry(curve,70,.025,6),new T.MeshBasicMaterial({color:0x386a78,transparent:true,opacity:.7})));const dot=new T.Mesh(new T.SphereGeometry(.065,10,10),i===1?blue:mint);world.add(dot);routes.push({curve,dot});});
 const grid=new T.GridHelper(100,100,0x294758,0x142b3b);grid.position.y=-1.3;scene.add(grid);
 const particles=new Float32Array(240*3);let seed=31;function random(){seed=seed*16807%2147483647;return(seed-1)/2147483646;}for(let i=0;i<particles.length;i+=3){particles[i]=(random()-.5)*70;particles[i+1]=random()*20-3;particles[i+2]=(random()-.5)*65;}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(particles,3));scene.add(new T.Points(geo,new T.PointsMaterial({color:0xa0d2e0,size:.035,transparent:true,opacity:.7})));
-const glow=new T.PointLight(0x52f5c3,60,28);glow.position.set(8,4,-5);scene.add(glow);const violet=new T.PointLight(0xa188ff,35,18);violet.position.set(-8,4,-5);scene.add(violet);
+const glow=new T.PointLight(0x8db7f4,60,28);glow.position.set(8,4,-5);scene.add(glow);const violet=new T.PointLight(0xa188ff,35,18);violet.position.set(-8,4,-5);scene.add(violet);
 const views={home:{p:[15,12,22],t:[0,0,-3]},work:{p:[6.5,5.7,10],t:[0,1,0]},systems:{p:[15,5.5,6],t:[9,1,-5]},about:{p:[-1,5.5,5],t:[-8,1,-6]},contact:{p:[8,5,0],t:[2,1,-12]}};
 let view=document.body.dataset.view||'home',paused=reduced.matches,elapsed=0,last=performance.now(),frame,dragging=false,moved=0,x=0,y=0,orbit=0,targetOrbit=0,contextLost=false;
 const targetPos=new T.Vector3(),targetLook=new T.Vector3(),look=new T.Vector3(),base=new T.Vector3();
