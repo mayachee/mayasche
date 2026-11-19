@@ -79,4 +79,4 @@ No music starts before the visitor enters.
 
 Station 04 (Contact) displays the supplied Gemini portrait. All German CV links
 use the uploaded dist/assets/Lebenslauf_MYassine_Ayache.pdf. The PDF content is
-preserved as supplied. The English CV is unchanged.
+preserved as supplied. English CV links use the uploaded dist/assets/CV_MYassine_Ayache_EN.pdf.
